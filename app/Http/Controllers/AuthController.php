@@ -47,41 +47,48 @@ class AuthController extends Controller
 
     public function login(Request $request)
     {
-        $validator = Validator::make($request->all(), [
-            'email' => 'required|email|exists:users,email',
-        ]);
-
-        if ($validator->fails()) {
-            return json_encode([
-                'errors' => $validator->errors()
+        try {
+            $validator = Validator::make($request->all(), [
+                'email' => 'required|email|exists:users,email',
             ]);
-        }
 
-        $user = User::where('email', $request->get('email'))->first();
-        $userPassword = $user->password;
+            if ($validator->fails()) {
+                return json_encode([
+                    'errors' => $validator->errors()
+                ]);
+            }
 
-        $isSamePassword = Hash::check($request->get('password'), $userPassword);
+            $user = User::where('email', $request->get('email'))->first();
+            $userPassword = $user->password;
 
-        if (!$isSamePassword) {
-            return json_encode([
-                'errors' => [
-                    'password' => trans('validation.password')
-                ]
-            ]);
-        }
+            $isSamePassword = Hash::check($request->get('password'), $userPassword);
 
-        $token = Auth::attempt($request->only(['password', 'email']));
+            if (!$isSamePassword) {
+                return json_encode([
+                    'errors' => [
+                        'password' => trans('validation.password')
+                    ]
+                ]);
+            }
 
-        if (!$token) {
+            $token = Auth::attempt($request->only(['password', 'email']));
+
+            if (!$token) {
+                return response()->json([
+                    'errorMsg' => 'Credenciais incorretas',
+                ]);
+            }
+
             return response()->json([
-                'errorMsg' => 'Credenciais incorretas',
+                'ok' => true,
+                'token' => $token,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'errorMsg' => 'Erro ao fazer login',
+                'error' => $e,
             ]);
         }
-
-        return response()->json([
-            'ok' => true,
-            'token' => $token,
-        ]);
 
     }
 }
