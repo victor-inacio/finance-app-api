@@ -44,4 +44,44 @@ class AuthController extends Controller
             ]);
         }
     }
+
+    public function login(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'email' => 'required|email|exists:users,email',
+        ]);
+
+        if ($validator->fails()) {
+            return json_encode([
+                'errors' => $validator->errors()
+            ]);
+        }
+
+        $user = User::where('email', $request->get('email'))->first();
+        $userPassword = $user->password;
+
+        $isSamePassword = Hash::check($request->get('password'), $userPassword);
+
+        if (!$isSamePassword) {
+            return json_encode([
+                'errors' => [
+                    'password' => trans('validation.password')
+                ]
+            ]);
+        }
+
+        $token = Auth::attempt($request->only(['password', 'email']));
+
+        if (!$token) {
+            return response()->json([
+                'errorMsg' => 'Credenciais incorretas',
+            ]);
+        }
+
+        return response()->json([
+            'ok' => true,
+            'token' => $token,
+        ]);
+
+    }
 }
